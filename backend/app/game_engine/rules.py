@@ -1,14 +1,13 @@
 """
-Bulgarian Belot valid-move rules (3-player variant — no partnerships).
+Bulgarian Belot valid-move rules (3-player house variant).
 
-Follow-suit obligations:
+Follow-suit obligations (per the user's house rules):
 1. Player MUST follow the led suit if possible.
-2. If cannot follow suit AND game has a trump suit AND player holds trump cards:
-   - Player MUST play a trump card.
-   - If playing trump: player MUST beat the current winning trump if possible.
-     (With no teams there is no "partner is winning" exemption — you always
-     over-trump when you can.)
-3. If none of the above apply, player may play any card.
+   - When the led suit is trump (a suit contract led with trump, or All Trump),
+     you must over-ride with a higher card of that suit if you can.
+2. If you CANNOT follow the led suit, you may play ANY card — you are never
+   forced to trump ("цакаш") in any contract. A voluntarily played trump still
+   wins the trick as normal.
 """
 from typing import List, Optional, Tuple
 from .card import Card, Suit, GameType, get_trump_suit
@@ -78,29 +77,9 @@ def get_legal_moves(
             return beating_cards if beating_cards else follow_suit_cards
         return follow_suit_cards
 
-    # Cannot follow suit.
-    if trump_suit is None:
-        # No Trump or All Trump: there is no master trump suit to over-trump
-        # with, so when void of the led suit you may play any card.
-        return list(hand)
-
-    # Suit game, cannot follow led suit
-    trump_cards = [c for c in hand if c.suit == trump_suit]
-    if not trump_cards:
-        return list(hand)
-
-    # Must play trump; must beat the current trump winner if possible (no
-    # partnerships in the 3-player game, so always over-trump when able).
-    winning_card = _current_trick_winner(trick, game_type)
-
-    if winning_card and _is_trump_suit_card(winning_card, game_type):
-        current_power = winning_card.get_trick_power(game_type)
-        beating_trumps = [
-            c for c in trump_cards if c.get_trick_power(game_type) > current_power
-        ]
-        return beating_trumps if beating_trumps else trump_cards
-
-    return trump_cards
+    # Cannot follow the led suit — you may play any card (no forced trumping
+    # in any contract, per the house rules).
+    return list(hand)
 
 
 def determine_trick_winner(
