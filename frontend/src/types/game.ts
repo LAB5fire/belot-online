@@ -61,6 +61,8 @@ export interface GameState {
   declarer: number
   hands: Record<string, Card[] | number>
   current_trick: TrickCard[]
+  last_trick: TrickCard[]
+  last_trick_winner: number | null
   trick_number: number
   tricks_won_count: Record<string, number>
   declarations: Record<string, Declaration[]>

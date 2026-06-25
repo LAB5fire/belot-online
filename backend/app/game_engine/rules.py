@@ -14,16 +14,28 @@ from typing import List, Optional, Tuple
 from .card import Card, Suit, GameType, get_trump_suit
 
 
+def _is_trump_suit_card(card: Card, game_type: GameType) -> bool:
+    """True only for cards of the single trump suit in a suit game.
+
+    In No Trump and All Trump there is no *master* trump suit that beats other
+    suits across the trick (All Trump just means every suit uses the trump
+    ranking within its own suit), so this returns False for both — only the led
+    suit can win those tricks.
+    """
+    trump_suit = get_trump_suit(game_type)
+    return trump_suit is not None and card.suit == trump_suit
+
+
 def _current_trick_winner(trick: List[Tuple[int, Card]], game_type: GameType) -> Optional[Card]:
     """Return the currently winning card of a trick in progress."""
     if not trick:
         return None
     led_suit = trick[0][1].suit
     winning_card = trick[0][1]
-    winning_is_trump = winning_card.is_trump(game_type)
+    winning_is_trump = _is_trump_suit_card(winning_card, game_type)
 
     for _, card in trick[1:]:
-        card_is_trump = card.is_trump(game_type)
+        card_is_trump = _is_trump_suit_card(card, game_type)
         if card_is_trump and not winning_is_trump:
             winning_card = card
             winning_is_trump = True
@@ -66,16 +78,10 @@ def get_legal_moves(
             return beating_cards if beating_cards else follow_suit_cards
         return follow_suit_cards
 
-    # Cannot follow suit
-    if all_trump:
-        # All cards are trump; must beat winner if possible
-        current_winner = _current_trick_winner(trick, game_type)
-        current_power = current_winner.get_trick_power(game_type) if current_winner else -1
-        beating = [c for c in hand if c.get_trick_power(game_type) > current_power]
-        return beating if beating else list(hand)
-
+    # Cannot follow suit.
     if trump_suit is None:
-        # No trump game — may play anything
+        # No Trump or All Trump: there is no master trump suit to over-trump
+        # with, so when void of the led suit you may play any card.
         return list(hand)
 
     # Suit game, cannot follow led suit
@@ -87,7 +93,7 @@ def get_legal_moves(
     # partnerships in the 3-player game, so always over-trump when able).
     winning_card = _current_trick_winner(trick, game_type)
 
-    if winning_card and winning_card.is_trump(game_type):
+    if winning_card and _is_trump_suit_card(winning_card, game_type):
         current_power = winning_card.get_trick_power(game_type)
         beating_trumps = [
             c for c in trump_cards if c.get_trick_power(game_type) > current_power
@@ -107,10 +113,10 @@ def determine_trick_winner(
     led_suit = trick[0][1].suit
     winning_player = trick[0][0]
     winning_card = trick[0][1]
-    winning_is_trump = winning_card.is_trump(game_type)
+    winning_is_trump = _is_trump_suit_card(winning_card, game_type)
 
     for player_idx, card in trick[1:]:
-        card_is_trump = card.is_trump(game_type)
+        card_is_trump = _is_trump_suit_card(card, game_type)
         beats = False
 
         if card_is_trump and not winning_is_trump:

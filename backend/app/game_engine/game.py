@@ -93,6 +93,9 @@ class BelotGame:
         self.belot_announced: Dict[int, bool] = {i: False for i in range(NUM_PLAYERS)}
 
         self.current_trick: List[Tuple[int, Card]] = []
+        # The just-completed trick, kept for display until the next card is led
+        # so every player gets to see all three cards (and who won).
+        self.last_trick_cards: List[Tuple[int, Card]] = []
         self.tricks_won: Dict[int, List[CompletedTrick]] = {i: [] for i in range(NUM_PLAYERS)}
         self.current_trick_number: int = 1
         self.current_leader: int = 1
@@ -117,6 +120,7 @@ class BelotGame:
         self.declarations_revealed = False
         self.belot_announced = {i: False for i in range(NUM_PLAYERS)}
         self.current_trick = []
+        self.last_trick_cards = []
         self.tricks_won = {i: [] for i in range(NUM_PLAYERS)}
         self.current_trick_number = 1
         self.current_leader = (self.dealer + 1) % NUM_PLAYERS
@@ -247,6 +251,9 @@ class BelotGame:
         if card not in legal:
             raise ValueError(f"Card {card} is not a legal move")
 
+        # Leading a new trick clears the previously completed trick from display.
+        self.last_trick_cards = []
+
         self._check_belot(player, card)
 
         self.hands[player].remove(card)
@@ -287,6 +294,10 @@ class BelotGame:
         self.tricks_won[winner].append(trick_record)
         self.last_trick_winner = winner
 
+        # Keep the three cards visible (in last_trick_cards) until the winner
+        # leads the next trick; current_trick itself is cleared so legal-move
+        # and turn logic treat the winner as leading a fresh trick.
+        self.last_trick_cards = list(self.current_trick)
         self.current_trick = []
         self.current_leader = winner
         self.current_trick_number += 1
@@ -415,6 +426,10 @@ class BelotGame:
             "current_trick": [
                 {"player": p, "card": c.to_dict()} for p, c in self.current_trick
             ],
+            "last_trick": [
+                {"player": p, "card": c.to_dict()} for p, c in self.last_trick_cards
+            ],
+            "last_trick_winner": self.last_trick_winner,
             "trick_number": self.current_trick_number,
             "tricks_won_count": {str(p): len(v) for p, v in self.tricks_won.items()},
             "declarations": {

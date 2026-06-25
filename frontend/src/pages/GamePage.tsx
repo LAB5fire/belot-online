@@ -18,9 +18,9 @@ export function GamePage() {
   const [selectedCard, setSelectedCard] = useState<Card | null>(null)
   const [logEntries, setLogEntries] = useState<ReturnType<typeof buildLogEntry>[]>([])
   const [showDeclarations, setShowDeclarations] = useState(false)
-  // Briefly hold a completed trick so the 3rd card is visible before it clears.
-  const [heldTrick, setHeldTrick] = useState<TrickCard[] | null>(null)
-  const prevTrickRef = useRef<TrickCard[]>([])
+  // Short pause after a trick completes so everyone can see all three cards.
+  const [trickPause, setTrickPause] = useState(false)
+  const prevLastTrickLen = useRef<number>(0)
   const prevRoundRef = useRef<number>(0)
 
   const addLog = useCallback((type: 'play' | 'trick' | 'bid' | 'system', msg: string) => {
@@ -57,18 +57,19 @@ export function GamePage() {
     }
   }, [game?.round_number, game?.phase])
 
-  // Hold a completed trick on screen for a moment.
+  // When a trick just completed (server keeps its 3 cards in last_trick),
+  // pause input briefly so the just-played card and the winner are visible.
   useEffect(() => {
     if (!game) return
-    const prev = prevTrickRef.current
-    if (prev.length === (game.num_players ?? 3) && game.current_trick.length === 0) {
-      setHeldTrick(prev)
-      const t = setTimeout(() => setHeldTrick(null), 1300)
-      prevTrickRef.current = game.current_trick
+    const len = game.last_trick?.length ?? 0
+    if (len > 0 && prevLastTrickLen.current === 0) {
+      setTrickPause(true)
+      const t = setTimeout(() => setTrickPause(false), 1500)
+      prevLastTrickLen.current = len
       return () => clearTimeout(t)
     }
-    prevTrickRef.current = game.current_trick
-  }, [game?.current_trick])
+    prevLastTrickLen.current = len
+  }, [game?.last_trick])
 
   if (!game || mySeat === null || !room) {
     return (
@@ -87,13 +88,18 @@ export function GamePage() {
   const rightSeat = (mySeat + 2) % n
 
   const yourTurn = game.phase === 'playing' && game.current_player === mySeat
+  const canPlay = yourTurn && !trickPause
   const isYourBidTurn = game.phase === 'bidding' && game.current_player === mySeat
   const legalMoves: Card[] = game.legal_moves || []
   const yourHand = game.hands[String(mySeat)]
-  const displayTrick = game.current_trick.length > 0 ? game.current_trick : (heldTrick ?? [])
+  // Show the in-progress trick, or the just-completed one the server is holding.
+  const showingLastTrick = game.current_trick.length === 0 && (game.last_trick?.length ?? 0) > 0
+  const displayTrick = game.current_trick.length > 0 ? game.current_trick : (game.last_trick ?? [])
+  const lastTrickWinnerName =
+    showingLastTrick && game.last_trick_winner !== null ? names[game.last_trick_winner] : null
 
   const handleCardClick = (card: Card) => {
-    if (!yourTurn) return
+    if (!canPlay) return
     if (selectedCard?.suit === card.suit && selectedCard?.rank === card.rank) {
       setSelectedCard(null)
       addLog('play', `You play ${card.rank}${SUIT_SYMBOLS[card.suit]}`)
@@ -104,7 +110,7 @@ export function GamePage() {
   }
 
   const confirmPlay = () => {
-    if (!selectedCard || !yourTurn) return
+    if (!selectedCard || !canPlay) return
     addLog('play', `You play ${selectedCard.rank}${SUIT_SYMBOLS[selectedCard.suit]}`)
     playCard(selectedCard)
     setSelectedCard(null)
@@ -174,7 +180,12 @@ export function GamePage() {
               boxShadow: 'inset 0 0 40px rgba(0,0,0,0.4)',
             }}
           >
-            <TrickArea currentTrick={displayTrick} mySeat={mySeat} numPlayers={n} />
+            <TrickArea
+              currentTrick={displayTrick}
+              mySeat={mySeat}
+              numPlayers={n}
+              lastTrickWinnerName={lastTrickWinnerName}
+            />
 
             {/* Bidding overlay */}
             <AnimatePresence>
@@ -253,13 +264,13 @@ export function GamePage() {
               legalMoves={legalMoves}
               selectedCard={selectedCard}
               onCardClick={handleCardClick}
-              yourTurn={yourTurn}
+              yourTurn={canPlay}
               gamePhase={game.phase}
               label={`${names[mySeat]} (you)`}
             />
 
             <AnimatePresence>
-              {selectedCard && yourTurn && (
+              {selectedCard && canPlay && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
                   className="flex gap-3"
@@ -278,7 +289,12 @@ export function GamePage() {
                   </button>
                 </motion.div>
               )}
-              {!selectedCard && game.phase === 'playing' && !yourTurn && (
+              {game.phase === 'playing' && trickPause && lastTrickWinnerName && (
+                <div className="text-yellow-300 text-sm bg-black bg-opacity-60 px-4 py-2 rounded-full">
+                  Trick won by {lastTrickWinnerName}
+                </div>
+              )}
+              {!selectedCard && game.phase === 'playing' && !yourTurn && !trickPause && (
                 <div className="text-white text-sm bg-black bg-opacity-50 px-4 py-2 rounded-full animate-pulse">
                   Waiting for {names[game.current_player ?? 0]}…
                 </div>

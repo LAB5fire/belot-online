@@ -12,13 +12,15 @@ interface BiddingPanelProps {
   playerNames: string[]
 }
 
+// Buttons sit on a dark background, so use light, legible colors (the old
+// dark gray made ♣ Clubs and ♠ Spades invisible).
 const SUIT_COLORS: Record<string, string> = {
-  clubs: 'text-gray-800',
-  diamonds: 'text-red-600',
-  hearts: 'text-red-600',
-  spades: 'text-gray-800',
-  no_trump: 'text-blue-600',
-  all_trump: 'text-purple-600',
+  clubs: 'text-gray-100',
+  diamonds: 'text-red-400',
+  hearts: 'text-red-400',
+  spades: 'text-gray-100',
+  no_trump: 'text-blue-300',
+  all_trump: 'text-purple-300',
 }
 
 export function BiddingPanel({ availableBids, currentBid, bids, isYourTurn, playerNames }: BiddingPanelProps) {
