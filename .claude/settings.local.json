@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "Bash(pip install *)",
+      "Bash(python -m pytest tests/test_game_engine.py -v)",
+      "PowerShell(py *)",
+      "Bash(python3 -c \"import sys; print\\(sys.version\\)\")",
+      "Bash(python -c \"import sys; print\\(sys.version\\)\")",
+      "Bash(python3 -m pip install pytest pytest-asyncio httpx aiosqlite --quiet)",
+      "Bash(python3 -m pytest tests/test_game_engine.py -v)",
+      "Bash(/c/Users/nikch/AppData/Local/Microsoft/WindowsApps/python3 -m pip install pytest pytest-asyncio httpx aiosqlite)",
+      "Read(//c/Users/nikch/AppData/Local/Programs/**)",
+      "Read(//c/Users/nikch/AppData/Local//**)",
+      "Bash(cd \"C:/Users/nikch/Desktop/Belot analyzer/backend\")",
+      "Bash('/c/Users/nikch/Desktop/tcg projecct/web/backend/.venv/Scripts/python.exe' -m pip install pytest pytest-asyncio httpx aiosqlite --quiet)",
+      "Bash('/c/Users/nikch/Desktop/tcg projecct/web/backend/.venv/Scripts/python.exe' -m pytest tests/test_game_engine.py -v)",
+      "Bash('/c/Users/nikch/Desktop/tcg projecct/web/backend/.venv/Scripts/python.exe' -m pip install asyncpg pydantic pydantic-settings fastapi sqlalchemy aiosqlite httpx --quiet)",
+      "Bash('/c/Users/nikch/Desktop/tcg projecct/web/backend/.venv/Scripts/python.exe' -m pytest tests/test_ai.py -v)",
+      "Bash('/c/Users/nikch/Desktop/tcg projecct/web/backend/.venv/Scripts/python.exe' -m pytest tests/test_ai.py tests/test_game_engine.py -v --tb=short)",
+      "Bash('/c/Users/nikch/Desktop/tcg projecct/web/backend/.venv/Scripts/python.exe' -m pytest tests/test_api.py -v --tb=short)",
+      "Bash(docker version *)",
+      "Bash(docker compose *)",
+      "Bash(tasklist)",
+      "PowerShell($ok=$false; foreach \\($i in 1..18\\) { try { docker info --format '{{.ServerVersion}}' 2>$null | Out-Null; if \\($?\\) { $v = docker info --format '{{.ServerVersion}}' 2>$null; if \\($v\\) { Write-Output \"Docker daemon UP, server $v\"; $ok=$true; break } } } catch {}; Start-Sleep -Seconds 10 }; if \\(-not $ok\\) { Write-Output \"Daemon not up yet after wait\"; wsl --list --verbose })",
+      "PowerShell($v = docker info --format '{{.ServerVersion}}' 2>$null; if \\($v\\) { Write-Output \"Docker daemon UP, server $v\" } else { Write-Output \"Daemon NOT up\"; wsl --list --verbose })",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Stop-Process *)",
+      "PowerShell($ok=$false; foreach \\($i in 1..15\\) { $v = docker info --format '{{.ServerVersion}}' 2>$null; if \\($v\\) { Write-Output \"Docker daemon UP, server $v\"; $ok=$true; break }; Start-Sleep -Seconds 12 }; if \\(-not $ok\\) { Write-Output \"Daemon still NOT up after ~3min\"; Write-Output \"=== WSL distros ===\"; wsl --list --verbose })",
+      "PowerShell($v = docker info --format '{{.ServerVersion}}' 2>$null; if \\($v\\) { Write-Output \"UP:$v\" } else { Write-Output \"DOWN\" })",
+      "PowerShell($ok=$false; foreach \\($i in 1..20\\) { $v = docker info --format '{{.ServerVersion}}' 2>$null; if \\($v\\) { Write-Output \"Docker daemon UP, server $v\"; $ok=$true; break }; Start-Sleep -Seconds 12 }; if \\(-not $ok\\) { Write-Output \"Still NOT up after ~4min\"; wsl --list --verbose })",
+      "PowerShell(docker compose up *)",
+      "Bash(echo \"=== last 25 lines of build log ===\")",
+      "Bash(tail -n 25 C:/Users/nikch/AppData/Local/Temp/claude/C--Users-nikch-Desktop-Belot-analyzer/4f4e8b72-858c-4f1c-a156-89e0687aca91/tasks/b2rc24qqy.output)",
+      "Bash(tail *)",
+      "Bash(timeout 60 docker run --rm node:20-slim sh -c 'time npm view react version --registry=https://registry.npmjs.org/ 2>&1')",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(timeout 65 docker run --rm node:20-slim sh -c 'npm view react version --fetch-timeout=60000 2>&1; echo NPMEXIT=$?')",
+      "Bash(echo \"OUTER=$?\")",
+      "PowerShell(docker compose build *)"
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+Step 1 — Enable HypervisorPlatform (requires reboot)
+
+  Run this in your terminal as ! <command>:
+
+  ! Start-Process powershell -Verb RunAs -ArgumentList "-Command Enable-WindowsOptionalFeature -Online -FeatureName
+  HypervisorPlatform -NoRestart; Write-Host Done"
+
+  Click Yes on UAC, wait for it to say "Done", then reboot your PC.
+
+  ---
+  Step 2 — After reboot, reset Docker Desktop's data
+
+  Run these (they delete Docker's broken VM state so it rebuilds fresh):
+
+  ! Stop-Process -Name "Docker Desktop","com.docker.backend","com.docker.build","docker-sandbox" -Force -ErrorAction
+  SilentlyContinue
+
+  ! Remove-Item "$env:LOCALAPPDATA\Docker\wsl" -Recurse -Force
+
+  ---
+  Step 3 — Start Docker Desktop
+
+  Open Docker Desktop from the Start menu. Wait 2–3 minutes for first-time WSL VM setup. The whale icon will go steady
+  when ready.
+
+  ---
+  Step 4 — Run your app
+
+  cd "C:\Users\nikch\Desktop\Belot analyzer"
+  docker compose up --build

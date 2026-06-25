@@ -1,0 +1,48 @@
+# Render Blueprint for Belot Online (3-player).
+#
+# Two services, no database needed (game state is in-memory):
+#   - belot-backend : FastAPI + WebSockets (Python web service)
+#   - belot-frontend: Vite static site (React)
+#
+# The two services are cross-linked: the frontend build gets the backend host
+# via VITE_API_BASE, and the backend's CORS allow-list gets the frontend host —
+# so no manual environment-variable copying is required.
+#
+# Deploy: push this repo to GitHub, then in Render: New + → Blueprint → pick the
+# repo. See DEPLOY.md for the full walkthrough.
+
+services:
+  - type: web
+    name: belot-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: CORS_ORIGINS
+        fromService:
+          type: web
+          name: belot-frontend
+          property: host
+
+  - type: web
+    name: belot-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    # SPA fallback: let React Router handle client-side routes.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE
+        fromService:
+          type: web
+          name: belot-backend
+          property: host

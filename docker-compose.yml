@@ -1,0 +1,16 @@
+# Local development. The app no longer needs Postgres — game state is in-memory.
+# Backend runs in Docker; run the frontend on the host (npm run dev) per the
+# project's working setup. Vite proxies /api and /ws to localhost:8000.
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DEBUG: "true"
+      CORS_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    restart: unless-stopped
