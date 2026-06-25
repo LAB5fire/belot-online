@@ -63,6 +63,14 @@ export function ScoreBoard({ gameState, playerNames, mySeat }: ScoreBoardProps) 
             className="border-t border-gray-700 pt-2 text-xs text-gray-400"
           >
             <div className="text-center font-bold text-gray-300 mb-1">Last Round</div>
+            {last_round.inside && last_round.inside_caller !== null && (
+              <div className="text-center text-red-400 font-bold mb-1">
+                ВЪТРЕ! {playerNames[last_round.inside_caller] ?? `Player ${last_round.inside_caller + 1}`} got caught
+                {last_round.beater !== null && (
+                  <> — {playerNames[last_round.beater] ?? `Player ${last_round.beater + 1}`} takes the points</>
+                )}
+              </div>
+            )}
             {last_round.valat !== null && last_round.valat !== undefined && (
               <div className="text-center text-yellow-400 font-bold mb-1">
                 VALAT! ({playerNames[last_round.valat] ?? `Player ${last_round.valat + 1}`})

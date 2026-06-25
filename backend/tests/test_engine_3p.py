@@ -86,37 +86,43 @@ class TestPlay:
 
 
 class TestScoring:
-    def test_individual_scores_keyed_per_player(self):
+    # Helper piles (No Trump values): A=11, 10=10, K=4, Q=3, J=2, 9=0.
+    def _piles(self):
         from app.game_engine.card import Card, Suit
-        # Player 0 wins one trick worth points; last-trick bonus to player 1.
-        trick0 = [Card(Suit.SPADES, Rank.ACE), Card(Suit.SPADES, Rank.KING), Card(Suit.SPADES, Rank.QUEEN)]
-        result = calculate_round_scores(
-            tricks_by_player={0: [trick0], 1: [], 2: []},
-            last_trick_winner=1,
-            game_type=GameType.NO_TRUMP,
-            declaration_points={0: 0, 1: 0, 2: 0},
-            belot_points={0: 0, 1: 0, 2: 0},
-        )
-        # A(11)+K(4)+Q(3) = 18 to player 0; +10 last trick to player 1.
-        assert result["card_points"][0] == 18
-        assert result["card_points"][1] == 10
-        assert result["final_scores"][0] == 18
-        assert result["final_scores"][1] == 10
-        assert set(result["final_scores"].keys()) == {0, 1, 2}
+        return {
+            0: [[Card(Suit.SPADES, Rank.KING), Card(Suit.SPADES, Rank.QUEEN), Card(Suit.SPADES, Rank.JACK)]],  # 9
+            1: [[Card(Suit.SPADES, Rank.ACE), Card(Suit.HEARTS, Rank.ACE), Card(Suit.SPADES, Rank.TEN)]],       # 32
+            2: [[Card(Suit.HEARTS, Rank.TEN), Card(Suit.HEARTS, Rank.KING), Card(Suit.HEARTS, Rank.QUEEN)]],    # 17
+        }
 
-    def test_valat_bonus(self):
-        from app.game_engine.card import Card, Suit
-        eight = [[Card(Suit.SPADES, Rank.ACE)] for _ in range(8)]
+    def test_round_div10_and_keys(self):
         result = calculate_round_scores(
-            tricks_by_player={0: eight, 1: [], 2: []},
-            last_trick_winner=0,
+            tricks_by_player=self._piles(),
+            last_trick_winner=2,  # +10 -> player 2 = 27
             game_type=GameType.NO_TRUMP,
             declaration_points={0: 0, 1: 0, 2: 0},
             belot_points={0: 0, 1: 0, 2: 0},
+            declarer=1,  # caller is the top scorer -> NOT inside
         )
-        assert result["valat"] == 0
-        # 8 aces (11 each) + 10 last trick + 90 valat
-        assert result["final_scores"][0] == 8 * 11 + 10 + 90
+        assert result["card_points"] == {0: 9, 1: 32, 2: 27}
+        assert result["inside"] is False
+        # Each banks their own /10 (rounded half up): 9->1, 32->3, 27->3
+        assert result["final_scores"] == {0: 1, 1: 3, 2: 3}
+
+    def test_vutre_beater_takes_callers_points(self):
+        result = calculate_round_scores(
+            tricks_by_player=self._piles(),
+            last_trick_winner=2,
+            game_type=GameType.NO_TRUMP,
+            declaration_points={0: 0, 1: 0, 2: 0},
+            belot_points={0: 0, 1: 0, 2: 0},
+            declarer=0,  # caller (9 pts) is outscored by player 1 (32) -> ВЪТРЕ
+        )
+        assert result["inside"] is True
+        assert result["inside_caller"] == 0
+        assert result["beater"] == 1
+        # Beater 1 takes own + caller's: 32 + 9 = 41 -> 4; caller 0; third keeps 27 -> 3
+        assert result["final_scores"] == {0: 0, 1: 4, 2: 3}
 
     def test_game_winner_highest_over_target(self):
         assert game_winner({0: 100, 1: 100, 2: 100}, TARGET_SCORE) is None

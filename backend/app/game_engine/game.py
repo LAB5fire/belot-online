@@ -63,6 +63,9 @@ class RoundResult:
     belot_points: Dict[int, int]
     final_scores: Dict[int, int]
     valat: Optional[int]
+    inside: bool = False
+    inside_caller: Optional[int] = None
+    beater: Optional[int] = None
 
 
 class BelotGame:
@@ -337,6 +340,7 @@ class BelotGame:
             game_type=self.game_type,
             declaration_points=decl_pts,
             belot_points=belot_pts,
+            declarer=self.declarer,
         )
 
         round_result = RoundResult(
@@ -348,6 +352,9 @@ class BelotGame:
             belot_points=result["belot_points"],
             final_scores=result["final_scores"],
             valat=result["valat"],
+            inside=result["inside"],
+            inside_caller=result["inside_caller"],
+            beater=result["beater"],
         )
         self.round_results.append(round_result)
 
@@ -382,6 +389,9 @@ class BelotGame:
             "belot_points": {str(k): v for k, v in rr.belot_points.items()},
             "final_scores": {str(k): v for k, v in rr.final_scores.items()},
             "valat": rr.valat,
+            "inside": rr.inside,
+            "inside_caller": rr.inside_caller,
+            "beater": rr.beater,
         }
 
     def to_dict(self, viewer: int = 0) -> dict:

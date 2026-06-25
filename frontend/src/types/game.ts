@@ -43,6 +43,9 @@ export interface RoundResult {
   belot_points: Record<string, number>
   final_scores: Record<string, number>
   valat: number | null
+  inside: boolean
+  inside_caller: number | null
+  beater: number | null
 }
 
 export interface GameState {
