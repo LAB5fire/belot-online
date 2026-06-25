@@ -124,6 +124,51 @@ class TestScoring:
         # Beater 1 takes own + caller's: 32 + 9 = 41 -> 4; caller 0; third keeps 27 -> 3
         assert result["final_scores"] == {0: 0, 1: 4, 2: 3}
 
+    def test_rounding_thresholds_per_contract(self):
+        from app.game_engine.scoring import round_points
+        # All Trump rounds up from 4, No Trump from 5, suit from 6.
+        assert round_points(84, GameType.ALL_TRUMP) == 9 and round_points(83, GameType.ALL_TRUMP) == 8
+        assert round_points(85, GameType.NO_TRUMP) == 9 and round_points(84, GameType.NO_TRUMP) == 8
+        assert round_points(86, GameType.SPADES) == 9 and round_points(85, GameType.SPADES) == 8
+        # Full contract totals.
+        assert round_points(258, GameType.ALL_TRUMP) == 26
+        assert round_points(130, GameType.NO_TRUMP) == 13
+        assert round_points(162, GameType.SPADES) == 16
+
+    def test_hanging_tie_then_carry_next_round(self):
+        from app.game_engine.card import Card, Suit
+        # Exact tie between caller (0) and beater (1): both raw 21, player 2 = 14.
+        piles = {
+            0: [[Card(Suit.SPADES, Rank.ACE), Card(Suit.SPADES, Rank.TEN)]],   # 21
+            1: [[Card(Suit.HEARTS, Rank.ACE), Card(Suit.HEARTS, Rank.TEN)]],   # 21
+            2: [[Card(Suit.CLUBS, Rank.KING)]],                                # 4 (+10 last trick = 14)
+        }
+        r1 = calculate_round_scores(
+            tricks_by_player=piles, last_trick_winner=2, game_type=GameType.NO_TRUMP,
+            declaration_points={0: 0, 1: 0, 2: 0}, belot_points={0: 0, 1: 0, 2: 0},
+            declarer=0, hanging_in=0,
+        )
+        assert r1["hanging"] is True and r1["inside"] is False
+        assert r1["inside_caller"] == 0 and r1["beater"] == 1
+        assert r1["hanging_out"] == 21  # caller's points hang
+        assert r1["final_scores"] == {0: 0, 1: 2, 2: 1}
+
+        # Next round carries 21; declarer 1 is top scorer (31) and collects it.
+        piles2 = {
+            0: [[Card(Suit.SPADES, Rank.KING)]],                               # 4
+            1: [[Card(Suit.SPADES, Rank.ACE), Card(Suit.SPADES, Rank.TEN)]],   # 21 (+10 = 31)
+            2: [[Card(Suit.HEARTS, Rank.QUEEN)]],                              # 3
+        }
+        r2 = calculate_round_scores(
+            tricks_by_player=piles2, last_trick_winner=1, game_type=GameType.NO_TRUMP,
+            declaration_points={0: 0, 1: 0, 2: 0}, belot_points={0: 0, 1: 0, 2: 0},
+            declarer=1, hanging_in=r1["hanging_out"],
+        )
+        assert r2["inside"] is False and r2["hanging"] is False
+        assert r2["hanging_out"] == 0
+        # Player 1: 31 + 21 carried = 52 -> 5 (No Trump). Others round to 0.
+        assert r2["final_scores"][1] == 5
+
     def test_game_winner_highest_over_target(self):
         assert game_winner({0: 100, 1: 100, 2: 100}, TARGET_SCORE) is None
         assert game_winner({0: 151, 1: 90, 2: 80}, TARGET_SCORE) == 0

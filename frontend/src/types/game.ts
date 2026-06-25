@@ -44,8 +44,10 @@ export interface RoundResult {
   final_scores: Record<string, number>
   valat: number | null
   inside: boolean
+  hanging: boolean
   inside_caller: number | null
   beater: number | null
+  hanging_amount: number
 }
 
 export interface GameState {

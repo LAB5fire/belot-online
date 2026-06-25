@@ -64,8 +64,10 @@ class RoundResult:
     final_scores: Dict[int, int]
     valat: Optional[int]
     inside: bool = False
+    hanging: bool = False
     inside_caller: Optional[int] = None
     beater: Optional[int] = None
+    hanging_amount: int = 0
 
 
 class BelotGame:
@@ -80,6 +82,8 @@ class BelotGame:
         self.round_number: int = 1
         self.cumulative_scores: Dict[int, int] = {i: 0 for i in range(NUM_PLAYERS)}
         self.round_results: List[RoundResult] = []
+        # "Висящи" points carried from a tied round to the next round's top scorer.
+        self.hanging_points: int = 0
 
         self.dealer: int = 0
         self.deck: List[Card] = []
@@ -341,7 +345,9 @@ class BelotGame:
             declaration_points=decl_pts,
             belot_points=belot_pts,
             declarer=self.declarer,
+            hanging_in=self.hanging_points,
         )
+        self.hanging_points = result["hanging_out"]
 
         round_result = RoundResult(
             round_number=self.round_number,
@@ -353,8 +359,10 @@ class BelotGame:
             final_scores=result["final_scores"],
             valat=result["valat"],
             inside=result["inside"],
+            hanging=result["hanging"],
             inside_caller=result["inside_caller"],
             beater=result["beater"],
+            hanging_amount=result["hanging_out"],
         )
         self.round_results.append(round_result)
 
@@ -390,8 +398,10 @@ class BelotGame:
             "final_scores": {str(k): v for k, v in rr.final_scores.items()},
             "valat": rr.valat,
             "inside": rr.inside,
+            "hanging": rr.hanging,
             "inside_caller": rr.inside_caller,
             "beater": rr.beater,
+            "hanging_amount": rr.hanging_amount,
         }
 
     def to_dict(self, viewer: int = 0) -> dict:

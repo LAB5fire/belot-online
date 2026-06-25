@@ -71,6 +71,12 @@ export function ScoreBoard({ gameState, playerNames, mySeat }: ScoreBoardProps) 
                 )}
               </div>
             )}
+            {last_round.hanging && last_round.inside_caller !== null && (
+              <div className="text-center text-orange-300 font-bold mb-1">
+                ВИСЯЩИ! {playerNames[last_round.inside_caller] ?? `Player ${last_round.inside_caller + 1}`} tied —
+                {' '}{last_round.hanging_amount} pts carry to next round
+              </div>
+            )}
             {last_round.valat !== null && last_round.valat !== undefined && (
               <div className="text-center text-yellow-400 font-bold mb-1">
                 VALAT! ({playerNames[last_round.valat] ?? `Player ${last_round.valat + 1}`})
