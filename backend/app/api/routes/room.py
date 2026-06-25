@@ -93,6 +93,11 @@ async def game_socket(websocket: WebSocket, code: str):
     try:
         while True:
             message = await websocket.receive_json()
+            # Keepalive: clients ping periodically so Render doesn't drop the
+            # idle socket (and to keep the instance warm). No state change.
+            if message.get("action") == "ping":
+                await websocket.send_json({"type": "pong"})
+                continue
             try:
                 room_manager.apply_action(room, player, message)
             except ValueError as e:
@@ -106,13 +111,11 @@ async def game_socket(websocket: WebSocket, code: str):
     finally:
         await manager.disconnect(code, player.seat)
         player.connected = False
-        # Tell whoever is left that this player dropped.
+        # Tell whoever is left that this player dropped. We intentionally do NOT
+        # delete the room here — a dropped/idle socket (common while waiting in
+        # the lobby) must not make the room vanish for everyone else. Rooms are
+        # pruned by age instead (see RoomManager).
         try:
             await manager.broadcast(room)
         except Exception:
             pass
-        # Clean up rooms nobody is connected to anymore.
-        if room.code not in manager.active and not any(
-            p.connected for p in room.players.values()
-        ):
-            room_manager.remove_room(room.code)

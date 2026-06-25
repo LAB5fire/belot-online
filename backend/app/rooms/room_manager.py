@@ -8,7 +8,7 @@ online deployment simple. (If the server restarts, in-progress rooms are lost.)
 """
 from __future__ import annotations
 import secrets
-import string
+import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
@@ -17,6 +17,7 @@ from ..game_engine.card import Card, Suit, Rank, GameType
 
 MAX_PLAYERS = 3
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no easily-confused chars
+ROOM_TTL_SECONDS = 6 * 60 * 60  # prune rooms older than 6 hours
 
 
 @dataclass
@@ -34,6 +35,7 @@ class Room:
     game: Optional[BelotGame] = None
     status: str = "lobby"  # lobby | playing | finished
     host_seat: int = 0
+    created_at: float = field(default_factory=time.time)
 
     def player_by_token(self, token: str) -> Optional[Player]:
         for p in self.players.values():
@@ -71,7 +73,13 @@ class RoomManager:
             if code not in self.rooms:
                 return code
 
+    def _prune_stale(self) -> None:
+        cutoff = time.time() - ROOM_TTL_SECONDS
+        for code in [c for c, r in self.rooms.items() if r.created_at < cutoff]:
+            self.rooms.pop(code, None)
+
     def create_room(self, name: str) -> dict:
+        self._prune_stale()
         code = self._new_code()
         token = secrets.token_urlsafe(16)
         room = Room(code=code)

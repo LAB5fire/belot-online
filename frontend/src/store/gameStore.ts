@@ -37,6 +37,9 @@ function clearCreds() {
 }
 
 let socket: WebSocket | null = null
+let pingTimer: ReturnType<typeof setInterval> | null = null
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+let intentionalClose = false
 
 interface GameStore {
   code: string | null
@@ -99,11 +102,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
       return
     }
+    intentionalClose = false
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null }
 
     const ws = new WebSocket(wsUrl(`/ws/${code}?token=${encodeURIComponent(token)}`))
     socket = ws
 
-    ws.onopen = () => set({ connected: true })
+    ws.onopen = () => {
+      set({ connected: true })
+      // Keepalive so the idle socket isn't dropped (and the server stays warm).
+      if (pingTimer) clearInterval(pingTimer)
+      pingTimer = setInterval(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ action: 'ping' }))
+        }
+      }, 25000)
+    }
 
     ws.onmessage = (event) => {
       try {
@@ -113,6 +127,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         } else if (msg.type === 'error') {
           set({ error: msg.message })
         }
+        // msg.type === 'pong' is just a keepalive ack — ignore.
       } catch {
         /* ignore malformed */
       }
@@ -120,11 +135,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     ws.onclose = () => {
       set({ connected: false })
+      if (pingTimer) { clearInterval(pingTimer); pingTimer = null }
       if (socket === ws) socket = null
+      // Auto-reconnect unless the user deliberately left. The room survives a
+      // dropped connection on the server, so reconnecting (same token) resumes.
+      if (!intentionalClose && get().code && get().token) {
+        if (reconnectTimer) clearTimeout(reconnectTimer)
+        reconnectTimer = setTimeout(() => get().connect(), 2000)
+      }
     }
 
     ws.onerror = () => {
-      set({ error: 'Connection error' })
+      // Let onclose handle reconnection; avoid flashing a toast on transient drops.
     }
   },
 
@@ -143,6 +165,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   playCard: (card) => socket?.send(JSON.stringify({ action: 'play', card })),
 
   leave: () => {
+    intentionalClose = true
+    if (pingTimer) { clearInterval(pingTimer); pingTimer = null }
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null }
     clearCreds()
     if (socket) {
       socket.onclose = null
